@@ -105,7 +105,53 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
+	double cov_x = std_landmark[0] * std_landmark[0];
+	double cov_y = std_landmark[1] * std_landmark[1];
+	double normalizer = 2.0 * M_PI * std_landmark[0] * std_landmark[1];
 
+	for (int i = 0; i < particles.size(); i++) {
+		vector<LandmarkObs> predicted_landmarks;
+		for (auto map_lm : map_landmarks.landmark_list) {
+			LandmarkObs pred_lm;
+			pred_lm.x = map_lm.x_f;
+			pred_lm.y = map_lm.y_f;
+			pred_lm.id = map_lm.id_i;
+
+			if (dist(pred_lm.x, pred_lm.y, particles[i].x, particles[i].y) <= sensor_range) {
+				predicted_landmarks.push_back(pred_lm);
+			}
+		}
+
+		vector<LandmarkObs> transformed_obs;
+		for (auto obs_lm : observations) {
+			LandmarkObs obs_global;
+			obs_global.id = obs_lm.id;
+			obs_global.x = obs_lm.x * cos(particles[i].theta) - obs_lm.y * sin(particles[i].theta) + particles[i].x;
+			obs_global.y = obs_lm.x * sin(particles[i].theta) + obs_lm.y * cos(particles[i].theta) + particles[i].y;
+			transformed_obs.push_back(obs_global);
+		}
+
+		dataAssociation(predicted_landmarks,transformed_obs);
+		particles[i].weight = 1.0;
+
+		for (int j = 0; j < transformed_obs.size(); j++) {
+			double pred_x, pred_y, obs_x, obs_y;
+			auto transformed_ob = transformed_obs[j];
+
+			for (int k = 0; k < predicted_landmarks.size(); k++) {
+				if (predicted_landmarks[k].id == transformed_ob.id) {
+					pred_x = predicted_landmarks[k].x;
+					pred_y = predicted_landmarks[k].y;
+				}
+			}
+
+			double dist_x = (pred_x - transformed_obs[j].x);
+			double dist_y = (pred_y - transformed_obs[j].y);
+			double pdf = exp(-(dist_x * dist_x/(2*cov_x) + dist_y* dist_y/(2*cov_y))) / normalizer;
+
+			particles[i].weight *= pdf;
+		}
+	}
 }
 
 void ParticleFilter::resample() {
