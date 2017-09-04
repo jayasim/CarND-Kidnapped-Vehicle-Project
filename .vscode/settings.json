@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "random": "cpp",
+        "iostream": "cpp",
+        "__bit_reference": "cpp",
+        "__hash_table": "cpp",
+        "__tree": "cpp",
+        "algorithm": "cpp",
+        "map": "cpp",
+        "string": "cpp",
+        "unordered_set": "cpp"
+    }
+}
